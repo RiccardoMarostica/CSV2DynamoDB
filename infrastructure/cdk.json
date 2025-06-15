@@ -93,29 +93,68 @@
     "@aws-cdk/aws-ec2:requirePrivateSubnetsForEgressOnlyInternetGateway": true,
     "@aws-cdk/aws-s3:publicAccessBlockedByDefault": true,
     "@aws-cdk/aws-lambda:useCdkManagedLogGroup": true,
-    "environments": {
+    "envs": {
       "dev": {
-        "id": "dev",
+        "projectName": "csv-importer",
         "importBucket": {
           "versioned": true,
           "blockPublicAccess": {
-             "blockPublicAcls": true,
-             "blockPublicPolicy": true,
-             "ignorePublicAcls": true,
-             "restrictPublicBuckets": true
-          }
+            "blockPublicAcls": true,
+            "blockPublicPolicy": true,
+            "ignorePublicAcls": true,
+            "restrictPublicBuckets": true
+          },
+          "enforceSSL": true
+        },
+        "parserLambda": {
+          "architecture": "X86_64",
+          "environment": {
+            "env": "dev"
+          },
+          "memorySize": 256,
+          "timeout": 180
         }
       },
       "qa": {
-        "id": "qa",
+        "projectName": "csv-importer",
         "importBucket": {
-          "versioned": true
+          "versioned": true,
+          "blockPublicAccess": {
+            "blockPublicAcls": true,
+            "blockPublicPolicy": true,
+            "ignorePublicAcls": true,
+            "restrictPublicBuckets": true
+          },
+          "enforceSSL": true
+        },
+        "parserLambda": {
+          "architecture": "X86_64",
+          "environment": {
+            "env": "qa"
+          },
+          "memorySize": 256,
+          "timeout": 180
         }
       },
       "prod": {
-        "id": "prod",
+        "projectName": "csv-importer",
         "importBucket": {
-          "versioned": true
+          "versioned": true,
+          "blockPublicAccess": {
+            "blockPublicAcls": true,
+            "blockPublicPolicy": true,
+            "ignorePublicAcls": true,
+            "restrictPublicBuckets": true
+          },
+          "enforceSSL": true
+        },
+        "parserLambda": {
+          "architecture": "X86_64",
+          "environment": {
+            "env": "prod"
+          },
+          "memorySize": 256,
+          "timeout": 180
         }
       }
     }

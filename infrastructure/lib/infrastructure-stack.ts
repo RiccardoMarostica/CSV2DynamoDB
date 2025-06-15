@@ -1,24 +1,61 @@
 import * as cdk from 'aws-cdk-lib';
+import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { BlockPublicAccess, Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
+import { getLambdaArchitecture } from '../utils/utils';
+import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // Retrieve enviroment to work with
-    const env = props?.env || 'dev';
+    const env = this.node.tryGetContext('env') || 'dev';
 
-    // Retrieve configuration for the S3 bucket, based on the environemnt
-    const importBucketConfig = this.node.tryGetContext(`${env}.importBucket`)
+    // Retrieve configuration for the current environment.
+    // This is used to retrieve configurations for the stack
+    const envsConfig = this.node.tryGetContext(`envs`);
+
+    // Retrieve project name (used as prefix for all resources)
+    const projectName = envsConfig[env].projectName;
+
+    // Retrieve S3 bucket configuration for import bucket resource
+    const importBucketConfig = envsConfig[env].importBucket;
 
     // Create S3 bucket
-    const importBucket = new Bucket(scope, 'ImportBucket', {
-      bucketName: `importbucket-${env}`,
-      versioned: importBucketConfig.versioned || true,
-      blockPublicAccess: importBucketConfig.blockPublicAccess || BlockPublicAccess.BLOCK_ALL
+    const importBucket = new Bucket(this, 'ImportBucket', {
+      bucketName: `${projectName}-importbucket-${env}`,
+      versioned: importBucketConfig?.versioned || true,
+      blockPublicAccess: importBucketConfig?.blockPublicAccess || BlockPublicAccess.BLOCK_ALL,
+      enforceSSL: importBucketConfig?.enforceSSL || true
     });
 
+    // Create IAM Role used by Parser Lambda
+    const parserLambdaIAMRole = new Role(this, 'ParserLambdaIAMRole', {
+      roleName: `${projectName}-parser-role-${env}`,
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      description: "IAM Role used by Parser Lambda",
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
+      ]
+    });
+
+    // Retrieve Lambda configuration for Parser Lambda
+    const parserLambdaConfig = envsConfig[env].parserLambda;
+
+    // Create Lambda to parse the CSV stored in S3 bucket
+    const parserLambda = new Function(this, 'ParserLambda', {
+      functionName: `${projectName}-parser-${env}`,
+      description: "Lambda function used as event notification from S3 bucket to parse the CSV file and upload it to DynamoDB table",
+      code: Code.fromAsset(__dirname + '../../../lambdas/parser/dist'),
+      handler: 'index.handler',
+      runtime: Runtime.NODEJS_22_X,
+      architecture: getLambdaArchitecture(parserLambdaConfig.architecture),
+      environment: parserLambdaConfig?.enviroment || null,
+      memorySize:parserLambdaConfig?.memorySize || 128,
+      timeout: cdk.Duration.seconds(parserLambdaConfig?.timeout ?? 60),
+      role: parserLambdaIAMRole
+    });
 
   }
 }
