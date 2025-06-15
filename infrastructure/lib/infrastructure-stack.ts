@@ -1,9 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { BlockPublicAccess, Bucket } from 'aws-cdk-lib/aws-s3';
+import { BlockPublicAccess, Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import { getLambdaArchitecture } from '../utils/utils';
-import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { ManagedPolicy, PolicyDocument, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -52,10 +53,28 @@ export class InfrastructureStack extends cdk.Stack {
       runtime: Runtime.NODEJS_22_X,
       architecture: getLambdaArchitecture(parserLambdaConfig.architecture),
       environment: parserLambdaConfig?.enviroment || null,
-      memorySize:parserLambdaConfig?.memorySize || 128,
+      memorySize: parserLambdaConfig?.memorySize || 128,
       timeout: cdk.Duration.seconds(parserLambdaConfig?.timeout ?? 60),
       role: parserLambdaIAMRole
     });
 
+    // Grant permission to invoke the Lambda function by S3
+    parserLambda.addPermission('AllowS3Invoke', {
+      principal: new ServicePrincipal('s3.amazonaws.com'),
+      sourceArn: importBucket.bucketArn
+    })
+
+    // Create the event notification for S3 to invoke the Lambda
+    // POST Object created
+    importBucket.addEventNotification(
+      EventType.OBJECT_CREATED_POST,
+      new LambdaDestination(parserLambda)
+    );
+
+    // PUT Object created
+    importBucket.addEventNotification(
+      EventType.OBJECT_CREATED_PUT,
+      new LambdaDestination(parserLambda)
+    );
   }
 }
