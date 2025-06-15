@@ -2,14 +2,15 @@ import * as cdk from 'aws-cdk-lib';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { BlockPublicAccess, Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-import { getLambdaArchitecture } from '../utils/utils';
-import { ManagedPolicy, PolicyDocument, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { getDurationInSeconds, getLambdaArchitecture } from '../utils/utils';
+import { Effect, ManagedPolicy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+import { AttributeType, Billing, TableClass, TableEncryptionV2, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
+    
     // Retrieve enviroment to work with
     const env = this.node.tryGetContext('env') || 'dev';
 
@@ -19,6 +20,8 @@ export class InfrastructureStack extends cdk.Stack {
 
     // Retrieve project name (used as prefix for all resources)
     const projectName = envsConfig[env].projectName;
+
+
 
     // Retrieve S3 bucket configuration for import bucket resource
     const importBucketConfig = envsConfig[env].importBucket;
@@ -31,6 +34,8 @@ export class InfrastructureStack extends cdk.Stack {
       enforceSSL: importBucketConfig?.enforceSSL || true
     });
 
+
+
     // Create IAM Role used by Parser Lambda
     const parserLambdaIAMRole = new Role(this, 'ParserLambdaIAMRole', {
       roleName: `${projectName}-parser-role-${env}`,
@@ -40,6 +45,15 @@ export class InfrastructureStack extends cdk.Stack {
         ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
       ]
     });
+
+    // Attach the inline policy to get objects from S3
+    parserLambdaIAMRole.addToPolicy(new PolicyStatement({
+      actions: ['s3:GetObject'],
+      resources: [importBucket.bucketArn],
+      effect: Effect.ALLOW
+    }))
+
+
 
     // Retrieve Lambda configuration for Parser Lambda
     const parserLambdaConfig = envsConfig[env].parserLambda;
@@ -54,7 +68,7 @@ export class InfrastructureStack extends cdk.Stack {
       architecture: getLambdaArchitecture(parserLambdaConfig.architecture),
       environment: parserLambdaConfig?.enviroment || null,
       memorySize: parserLambdaConfig?.memorySize || 128,
-      timeout: cdk.Duration.seconds(parserLambdaConfig?.timeout ?? 60),
+      timeout: getDurationInSeconds(parserLambdaConfig?.timeout),
       role: parserLambdaIAMRole
     });
 
@@ -76,5 +90,37 @@ export class InfrastructureStack extends cdk.Stack {
       EventType.OBJECT_CREATED_PUT,
       new LambdaDestination(parserLambda)
     );
+
+
+    // Retrieve DynamoDB table configuration
+    const parsedTableConfig = envsConfig[env].parsedTable;
+
+    // Create dynamoDB Table which will store the parsed CSV data
+    const parsedTable = new TableV2(this, 'ParsedTable', {
+      tableName: `${projectName}-parsed-data-${env}`,
+      partitionKey: { name: 'id', type: AttributeType.STRING },
+      billing: Billing.onDemand(),
+      deletionProtection: parsedTableConfig.deletionProtection || false,
+      encryption: TableEncryptionV2.dynamoOwnedKey(),
+      tableClass: TableClass.STANDARD
+    });
+
+    // Add to the Lambda IAM role the policy to interact with DynamoDB   
+    parserLambdaIAMRole.addToPolicy(new PolicyStatement({
+      actions: [
+        'dynamodb:BatchWriteItem',
+        'dynamodb:BatchGetItem',
+        'dynamodb:DescribeTable',
+        'dynamodb:GetItem',
+        'dynamodb:PutItem'
+      ],
+      resources: [parsedTable.tableArn],
+      effect: Effect.ALLOW
+    }));
+
+
+    // Lastly, add tags to resources
+    cdk.Tags.of(this).add('project', projectName);
+    cdk.Tags.of(this).add('env', env);
   }
 }

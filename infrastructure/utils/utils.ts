@@ -1,6 +1,11 @@
+import { Duration } from "aws-cdk-lib";
 import { Architecture } from "aws-cdk-lib/aws-lambda"
 
-
+/**
+ * @description Returns the Lambda architecture to apply
+ * @param arch Input architecture to validate
+ * @returns Architecture type: X86_64, ARM64
+ */
 export const getLambdaArchitecture = (arch?: string): Architecture => {
     if (!arch) {
         // By default, return the X86_64 arch
@@ -17,4 +22,13 @@ export const getLambdaArchitecture = (arch?: string): Architecture => {
         // In case of invalid string, then return default arch (X86_64)
         return Architecture.X86_64;
     }
+}
+
+/**
+ * @description Returns the duration in seconds for the current time
+ * @param time Input time to set in seconds
+ * @returns Duration in seconds
+ */
+export const getDurationInSeconds = (time: number): Duration => {
+    return Duration.seconds(time ?? 60);
 }
