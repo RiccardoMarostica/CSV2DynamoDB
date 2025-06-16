@@ -46,7 +46,7 @@ class CSVToDynamoImporter {
     }
 
     /**
-     * Handles an incoming S3 event triggered by an object upload and processes the CSV file.
+     * @description Handles an incoming S3 event triggered by an object upload and processes the CSV file.
      * 
      * This method performs the end-to-end flow of:
      * - Extracting the bucket and object key from the S3 event.
