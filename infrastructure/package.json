@@ -15,7 +15,10 @@
     "cdk:synth-prod": "cdk synth --contenxt env=prod",
     "cdk:deploy": "cdk deploy --contenxt env=dev --profile=$npm_config_profile",
     "cdk:deploy-qa": "cdk deploy --contenxt env=qa --profile=$npm_config_profile",
-    "cdk:deploy-prod": "cdk deploy --contenxt env=prod --profile=$npm_config_profile"
+    "cdk:deploy-prod": "cdk deploy --contenxt env=prod --profile=$npm_config_profile",
+    "cdk:diff": "cdk diff --contenxt env=dev --profile=$npm_config_profile",
+    "cdk:diff-qa": "cdk diff --contenxt env=qa --profile=$npm_config_profile",
+    "cdk:diff-prod": "cdk diff --contenxt env=prod --profile=$npm_config_profile"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
