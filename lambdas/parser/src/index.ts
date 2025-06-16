@@ -11,8 +11,8 @@ import {
     AttributeValue
 } from "@aws-sdk/client-dynamodb";
 import { parse } from "csv-parse/sync";
-import pino from 'pino';
 
+import pino from 'pino';
 const logger = pino({
     level: process.env.LOG_LEVEL || 'info',
     timestamp: pino.stdTimeFunctions.isoTime, // ISO 8601 for easy reading
@@ -20,8 +20,7 @@ const logger = pino({
         level(label) {
             return { level: label };
         },
-    },
-
+    }
 })
 
 // Constant parameters
