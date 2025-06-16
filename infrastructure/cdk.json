@@ -109,7 +109,10 @@
         "parserLambda": {
           "architecture": "X86_64",
           "environment": {
-            "env": "dev"
+            "ENV": "dev",
+            "DYNAMO_DB_BATCH_SIZE": 25,
+            "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
           },
           "memorySize": 256,
           "timeout": 180
@@ -133,7 +136,10 @@
         "parserLambda": {
           "architecture": "X86_64",
           "environment": {
-            "env": "qa"
+            "ENV": "qa",
+            "DYNAMO_DB_BATCH_SIZE": 25,
+            "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
           },
           "memorySize": 256,
           "timeout": 180
@@ -157,7 +163,10 @@
         "parserLambda": {
           "architecture": "X86_64",
           "environment": {
-            "env": "prod"
+            "ENV": "prod",
+            "DYNAMO_DB_BATCH_SIZE": 25,
+            "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
           },
           "memorySize": 256,
           "timeout": 180

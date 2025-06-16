@@ -91,6 +91,17 @@ export class InfrastructureStack extends cdk.Stack {
       new LambdaDestination(parserLambda)
     );
 
+    // Add S3 permissions for Lambda 
+    parserLambdaIAMRole.addToPolicy(new PolicyStatement({
+      actions: ['s3:GetObject'],
+      resources: [
+        `${importBucket.bucketArn}`,
+        `${importBucket.bucketArn}/*`
+      ],
+      effect: Effect.ALLOW
+    }));
+
+
 
     // Retrieve DynamoDB table configuration
     const parsedTableConfig = envsConfig[env].parsedTable;
@@ -117,6 +128,10 @@ export class InfrastructureStack extends cdk.Stack {
       resources: [parsedTable.tableArn],
       effect: Effect.ALLOW
     }));
+
+    // Set Lambda environment variables
+    parserLambda.addEnvironment("S3_BUCKET_NAME", importBucket.bucketName);
+    parserLambda.addEnvironment("DYNAMO_TABLE_NAME", parsedTable.tableName);
 
 
     // Lastly, add tags to resources
