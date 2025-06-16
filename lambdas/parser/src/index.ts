@@ -11,6 +11,18 @@ import {
     AttributeValue
 } from "@aws-sdk/client-dynamodb";
 import { parse } from "csv-parse/sync";
+import pino from 'pino';
+
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+    timestamp: pino.stdTimeFunctions.isoTime, // ISO 8601 for easy reading
+    formatters: {
+        level(label) {
+            return { level: label };
+        },
+    },
+
+})
 
 // Constant parameters
 const MAX_BATCH_SIZE: number = Number(process.env.DYNAMO_DB_BATCH_SIZE) || 25;
@@ -22,7 +34,7 @@ class CSVToDynamoImporter {
     // Create instances for DynamoDB and S3
     private _s3Client = new S3Client({});
     private _ddbClient = new DynamoDBClient({});
-    
+
     // Dynamo DB - Fields
     private _tableName = process.env.DYNAMO_TABLE_NAME!;
     private _partitionKeyName: string = "";
@@ -52,14 +64,25 @@ class CSVToDynamoImporter {
      * @throws {Error} If any step in the process fails (e.g., missing partition key, invalid CSV, S3 access error).
      */
     async handleEvent(event: S3Event): Promise<void> {
+
+        logger.info({ msg: "Lambda input event", event });
+
         const record = event.Records[0];
         const bucket = record.s3.bucket.name;
         const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
 
+        logger.info({ msg: "Start processing CSV file", bucket, key });
+
         await this.loadPartitionKeyMetadata();
 
         const csvContent = await this.getCSVFileContent(bucket, key);
+
+        logger.info({ msg: "Retrieved CSV content as string", csvContent });
+
         const rows = this.parseCSV(csvContent);
+
+        logger.debug({ msg: "Number of rows to upload", count: rows.length });
+
         await this.processRows(rows);
     }
 
@@ -91,6 +114,12 @@ class CSVToDynamoImporter {
 
         this._partitionKeyName = keySchema.AttributeName!;
         this._partitionKeyType = attrDef.AttributeType as "S" | "N";
+
+        logger.info({
+            msg: "Loaded partition key metadata",
+            partitionKeyName: this._partitionKeyName,
+            partitionKeyType: this._partitionKeyType
+        });
     }
 
     /**
@@ -238,20 +267,23 @@ class CSVToDynamoImporter {
                 attempt++;
                 const delay = Math.pow(2, attempt) * BASE_DELAY_MS;
 
-                console.warn(`[WARN] Batch write attempt ${attempt} failed. Retrying ${unprocessed.length} items after ${delay}ms...`);
+                logger.warn({ msg: 'Retrying unprocessed items', retryCount: attempt, delay });
                 await new Promise(res => setTimeout(res, delay));
             }
         }
 
         if (unprocessed.length > 0) {
-            console.error(`[ERROR] Failed to process ${unprocessed.length} items after ${MAX_RETRIES} retries.`);
-            throw new Error("Batch write failed with unprocessed items.");
+            throw new Error("Failed to process ${unprocessed.length} items after ${MAX_RETRIES} retries.");
         }
     }
 
 }
 
 export const handler = async (event: S3Event) => {
-    const importer = new CSVToDynamoImporter();
-    await importer.handleEvent(event);
+    try {
+        const importer = new CSVToDynamoImporter();
+        await importer.handleEvent(event);
+    } catch (e) {
+        logger.error({ msg: 'Error while executing the Lambda function', error: e })
+    }
 };

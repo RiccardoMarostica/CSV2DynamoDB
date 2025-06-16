@@ -112,7 +112,8 @@
             "ENV": "dev",
             "DYNAMO_DB_BATCH_SIZE": 25,
             "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
-            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200,
+            "LOG_LEVEL": "info"
           },
           "memorySize": 256,
           "timeout": 180
@@ -139,7 +140,8 @@
             "ENV": "qa",
             "DYNAMO_DB_BATCH_SIZE": 25,
             "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
-            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200,
+            "LOG_LEVEL": "info"
           },
           "memorySize": 256,
           "timeout": 180
@@ -166,7 +168,8 @@
             "ENV": "prod",
             "DYNAMO_DB_BATCH_SIZE": 25,
             "DYNAMO_DB_BATCH_MAX_RETRIES": 5,
-            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200
+            "DYNAMO_DB_BATCH_BASE_DELAY_MS": 200,
+            "LOG_LEVEL": "info"
           },
           "memorySize": 256,
           "timeout": 180
