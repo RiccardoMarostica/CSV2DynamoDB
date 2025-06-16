@@ -25,10 +25,19 @@ export const getLambdaArchitecture = (arch?: string): Architecture => {
 }
 
 /**
- * @description Returns the duration in seconds for the current time
+ * @description Returns the duration in seconds for the current input
  * @param time Input time to set in seconds
  * @returns Duration in seconds
  */
 export const getDurationInSeconds = (time: number): Duration => {
     return Duration.seconds(time ?? 60);
+}
+
+/**
+ * @description Returns the duration in days for the current input
+ * @param time Input time to set in days
+ * @returns Duration in days
+ */
+export const getDurationInDays = (days: number): Duration => {
+    return Duration.days(days ?? 7);
 }

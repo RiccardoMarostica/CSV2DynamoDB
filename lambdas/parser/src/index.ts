@@ -283,6 +283,7 @@ export const handler = async (event: S3Event) => {
         const importer = new CSVToDynamoImporter();
         await importer.handleEvent(event);
     } catch (e) {
-        logger.error({ msg: 'Error while executing the Lambda function', error: e })
+        logger.error({ msg: 'Error while executing the Lambda function', error: e, event });
+        throw e;
     }
 };

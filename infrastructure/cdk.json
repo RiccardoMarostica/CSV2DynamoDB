@@ -118,6 +118,10 @@
           "memorySize": 256,
           "timeout": 180
         },
+        "parserDLQ": {
+          "retentionPeriod": 14,
+          "visibilityTimeout": 60
+        },
         "parsedTable": {
           "deletionProtection": true
         }
@@ -146,6 +150,10 @@
           "memorySize": 256,
           "timeout": 180
         },
+        "parserDLQ": {
+          "retentionPeriod": 14,
+          "visibilityTimeout": 60
+        },
         "parsedTable": {
           "deletionProtection": true
         }
@@ -173,6 +181,10 @@
           },
           "memorySize": 256,
           "timeout": 180
+        },
+        "parserDLQ": {
+          "retentionPeriod": 14,
+          "visibilityTimeout": 60
         },
         "parsedTable": {
           "deletionProtection": true

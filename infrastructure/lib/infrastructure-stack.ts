@@ -2,10 +2,11 @@ import * as cdk from 'aws-cdk-lib';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { BlockPublicAccess, Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
-import { getDurationInSeconds, getLambdaArchitecture } from '../utils/utils';
+import { getDurationInDays, getDurationInSeconds, getLambdaArchitecture } from '../utils/utils';
 import { Effect, ManagedPolicy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { AttributeType, Billing, TableClass, TableEncryptionV2, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -32,6 +33,18 @@ export class InfrastructureStack extends cdk.Stack {
       versioned: importBucketConfig?.versioned || true,
       blockPublicAccess: importBucketConfig?.blockPublicAccess || BlockPublicAccess.BLOCK_ALL,
       enforceSSL: importBucketConfig?.enforceSSL || true
+    });
+
+
+
+    // Retrieve SQS configuration for Parser Lambda DLQ
+    const parserLambdaDLQConfig = envsConfig[env].parserDLQ;
+
+    // Create SQS queue used as DLQ
+    const parserLambdaDLQ = new Queue(this, 'ParserLambdaDLQ', {
+      queueName: `${projectName}-parser-lambda-dlq-${env}`,
+      retentionPeriod: getDurationInDays(parserLambdaDLQConfig.retentionPeriod),
+      visibilityTimeout: getDurationInSeconds(parserLambdaDLQConfig.visibilityTimeout)
     });
 
 
@@ -69,7 +82,9 @@ export class InfrastructureStack extends cdk.Stack {
       environment: parserLambdaConfig?.enviroment || null,
       memorySize: parserLambdaConfig?.memorySize || 128,
       timeout: getDurationInSeconds(parserLambdaConfig?.timeout),
-      role: parserLambdaIAMRole
+      role: parserLambdaIAMRole,
+      deadLetterQueue: parserLambdaDLQ,
+      deadLetterQueueEnabled: true
     });
 
     // Grant permission to invoke the Lambda function by S3
@@ -100,6 +115,9 @@ export class InfrastructureStack extends cdk.Stack {
       ],
       effect: Effect.ALLOW
     }));
+
+    // Grant Lambda function to send message to DLQ
+    parserLambdaDLQ.grantSendMessages(parserLambda);
 
 
 
